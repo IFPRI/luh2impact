@@ -1,7 +1,7 @@
 Package: luh2impact
 Type: Package
 Title: Process LUH2 Land Use Data for IMPACT Model Integration
-Version: 0.1.0
+Version: 1.0.0
 Authors@R: c(
     person(
       "Abhijeet", "Mishra",
@@ -17,17 +17,18 @@ Authors@R: c(
 Description: Tools for processing LUH2 land use data, computing spatial weights,
     and generating GDX inputs for the LUMEN land use optimization model driven
     by IMPACT scenario outputs.
-License: MIT
+License: CC BY 4.0
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.3.2
 Imports:
-    terra,
-    dplyr,
-    tidyr,
-    ggplot2,
-    tidyterra,
-    ggpubr
+    terra (>= 1.9.1),
+    dplyr (>= 1.1.4),
+    tidyr (>= 1.3.1),
+    ggplot2 (>= 3.5.1),
+    tidyterra (>= 0.6.1),
+    ggpubr (>= 0.6.0),
+    DOORMAT (>= 3.14.1)
 Suggests:
     gamstransfer
 Remotes:
