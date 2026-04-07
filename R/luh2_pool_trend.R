@@ -29,7 +29,7 @@ luh2_pool_trend <- function(luh, pool_vars, year_start, year_end) {
         terra::app(luh[[available]], fun = "sum", na.rm = TRUE)
     }))
 
-    time_idx <- seq_along(suffixes)
+    time_idx <- seq_along(suffixes) # nolint: object_usage_linter
 
     pool_trend <- terra::app(pool_stack, function(x) {
         if (all(is.na(x))) return(NA_real_)

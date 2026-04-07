@@ -91,9 +91,9 @@ luh2_build_pixels <- function(shares, crop_trend, natfor_trend, other_trend,
             w_crop_exp    = (crop_area   * pmax(crop_slope,    0)) / sum(crop_area   * pmax(crop_slope,    0), na.rm = TRUE),
             w_crop_con    = (crop_area   * pmax(-crop_slope,   0)) / sum(crop_area   * pmax(-crop_slope,   0), na.rm = TRUE),
             w_natfor_loss = (natfor_area * pmax(-natfor_slope, 0)) / sum(natfor_area * pmax(-natfor_slope, 0), na.rm = TRUE),
-            w_natfor_gain = (natfor_area * pmax( natfor_slope, 0)) / sum(natfor_area * pmax( natfor_slope, 0), na.rm = TRUE),
+            w_natfor_gain = (natfor_area * pmax(natfor_slope, 0)) / sum(natfor_area * pmax(natfor_slope, 0), na.rm = TRUE),
             w_other_loss  = (other_area  * pmax(-other_slope,  0)) / sum(other_area  * pmax(-other_slope,  0), na.rm = TRUE),
-            w_other_gain  = (other_area  * pmax( other_slope,  0)) / sum(other_area  * pmax( other_slope,  0), na.rm = TRUE),
+            w_other_gain  = (other_area  * pmax(other_slope,  0)) / sum(other_area  * pmax(other_slope,  0), na.rm = TRUE),
             w_past        = past_area  / sum(past_area,  na.rm = TRUE),
             w_plant       = (plant_area * plant_prox) / sum(plant_area * plant_prox, na.rm = TRUE)
         ) |>

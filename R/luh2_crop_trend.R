@@ -27,7 +27,7 @@ luh2_crop_trend <- function(luh, year_start, year_end) {
         terra::app(luh[[available]], fun = "sum", na.rm = TRUE)
     }))
 
-    time_idx <- seq_along(suffixes)
+    time_idx <- seq_along(suffixes) # nolint: object_usage_linter
 
     crop_trend <- terra::app(crop_stack, function(x) {
         if (all(is.na(x))) return(NA_real_)
