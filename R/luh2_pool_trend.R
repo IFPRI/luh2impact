@@ -15,6 +15,7 @@
 #' @author Abhijeet Mishra, Claude Code
 #' @export
 luh2_pool_trend <- function(luh, pool_vars, year_start, year_end) {
+    # nolint start: commented_code_linter
     luh_start <- as.integer(terra::time(luh)[1])
 
     suffix_start <- year_start - luh_start + 1
@@ -31,11 +32,21 @@ luh2_pool_trend <- function(luh, pool_vars, year_start, year_end) {
 
     time_idx <- seq_along(suffixes) # nolint: object_usage_linter
 
+    # Pre-compute OLS slope analytically - no lm needed
+    t_centered <- time_idx - mean(time_idx)
+    t_ss <- sum(t_centered^2)
+
     pool_trend <- terra::app(pool_stack, function(x) {
         if (all(is.na(x))) return(NA_real_)
-        stats::coef(stats::lm(x ~ time_idx))[2]
+        sum(t_centered * x, na.rm = TRUE) / t_ss
     })
+
+    # pool_trend <- terra::app(pool_stack, function(x) {
+    #     if (all(is.na(x))) return(NA_real_)
+    #     stats::coef(stats::lm(x ~ time_idx))[2]
+    # })
 
     names(pool_trend) <- "pool_slope"
     pool_trend
+    # nolint end
 }

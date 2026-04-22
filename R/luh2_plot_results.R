@@ -48,6 +48,7 @@ luh2_plot_results <- function(output_dir, cty_shp, save_png = TRUE) {
         pools
     )
 
+    yrs_all <- names(lu_all[[1]])
     ext_rast  <- terra::ext(lu_all[[1]][[1]])
     ctyx      <- terra::crop(ctyx, ext_rast)
     ext_cty   <- terra::ext(ctyx)
@@ -63,9 +64,27 @@ luh2_plot_results <- function(output_dir, cty_shp, save_png = TRUE) {
     avail_df <- avail_df |>
         dplyr::left_join(pid_coords[, c("pid", "x", "y")], by = "pid")
 
+    # Precalc share stuff
+
+    share_yrs <- intersect(c("2021", "2050"), yrs_all)
+
+    share_df <- dplyr::bind_rows(lapply(share_yrs, function(yr) {
+        pool_stack <- terra::rast(lapply(pools, function(p) {
+            r <- lu_all[[p]][[yr]]
+            names(r) <- p
+            r
+        }))
+
+        as.data.frame(pool_stack, xy = TRUE) |>
+            tidyr::pivot_longer(-c(x, y), names_to = "pool", values_to = "area") |>
+            dplyr::left_join(avail_df[, c("x", "y", "avail_kha")], by = c("x", "y")) |>
+            dplyr::mutate(share = area / avail_kha, year = yr)
+    }))
+
     # ----------------------------------------------------------------
     # Plot 1: Changes vs 2021 for years 2035 and 2050
     # ----------------------------------------------------------------
+
     plot_yrs <- intersect(c("2035", "2050"), yrs_all)
 
     dx_all <- stats::setNames(
@@ -75,6 +94,8 @@ luh2_plot_results <- function(output_dir, cty_shp, save_png = TRUE) {
         }),
         pools
     )
+
+    ext_cty <- c(range(share_df$x, na.rm = TRUE), range(share_df$y, na.rm = TRUE))
 
     global_max <- max(sapply(dx_all, function(dx) max(abs(terra::minmax(dx)), na.rm = TRUE)))
 
@@ -109,20 +130,6 @@ luh2_plot_results <- function(output_dir, cty_shp, save_png = TRUE) {
     # ----------------------------------------------------------------
     # Plot 2: Shares faceted by pool and year (2021 and 2050)
     # ----------------------------------------------------------------
-    share_yrs <- intersect(c("2021", "2050"), yrs_all)
-
-    share_df <- dplyr::bind_rows(lapply(share_yrs, function(yr) {
-        pool_stack <- terra::rast(lapply(pools, function(p) {
-            r <- lu_all[[p]][[yr]]
-            names(r) <- p
-            r
-        }))
-
-        as.data.frame(pool_stack, xy = TRUE) |>
-            tidyr::pivot_longer(-c(x, y), names_to = "pool", values_to = "area") |>
-            dplyr::left_join(avail_df[, c("x", "y", "avail_kha")], by = c("x", "y")) |>
-            dplyr::mutate(share = area / avail_kha, year = yr)
-    }))
 
     ext_run <- c(range(share_df$x, na.rm = TRUE), range(share_df$y, na.rm = TRUE))
 

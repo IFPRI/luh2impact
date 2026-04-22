@@ -42,19 +42,23 @@ luh2_merge_planted <- function(luarea, cellarea, planted_tif) {
     planted <- shares[["planted_forest_share"]]
 
     # Carve from other first
-    take_from_other <- terra::lapp(
-        c(planted, shares[["other_share"]]),
+    pool <- "other"
+    pooln <- paste0(pool, "_share")
+    take_from_pool <- terra::lapp(
+        c(planted, shares[[pooln]]),
         fun = function(a, b) pmin(a, b)
     )
-    shares[["other_share"]] <- shares[["other_share"]] - take_from_other
-    planted_remaining <- planted - take_from_other
+    shares[[pooln]] <- shares[[pooln]] - take_from_pool
+    planted_remaining <- planted - take_from_pool
 
-    # Then carve from natfor
-    take_from_natfor <- terra::lapp(
-        c(planted_remaining, shares[["natfor_share"]]),
+    # Then carve from past
+    pool <- "range"
+    pooln <- paste0(pool, "_share")
+    take_from_pool <- terra::lapp(
+        c(planted_remaining, shares[[pooln]]),
         fun = function(a, b) pmin(a, b)
     )
-    shares[["natfor_share"]] <- shares[["natfor_share"]] - take_from_natfor
+    shares[[pooln]] <- shares[[pooln]] - take_from_pool
 
     # Cap residual planted at remaining space
     luh2_pools <- c("crop_share", "natfor_share", "range_share", "other_share", "urban_share")

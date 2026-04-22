@@ -11,9 +11,9 @@ luh2gdx(
   cty_shp,
   impact_gdx,
   output_gdx,
-  year,
-  year_start,
-  year_end
+  year = 2015,
+  year_start = 1990,
+  year_end = 2015
 )
 }
 \arguments{

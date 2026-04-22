@@ -16,6 +16,8 @@
 #'
 #' @return Invisibly returns the path to the written GDX file.
 #' @author Abhijeet Mishra, Claude Code
+#' @importFrom dplyr filter select mutate group_by ungroup summarise left_join across pull starts_with ends_with
+#' @importFrom tidyr pivot_wider
 #' @export
 luh2gdx <- function(states_nc,
                     static_nc,
@@ -23,9 +25,9 @@ luh2gdx <- function(states_nc,
                     cty_shp,
                     impact_gdx,
                     output_gdx,
-                    year,
-                    year_start,
-                    year_end) {
+                    year = 2015,
+                    year_start = 1990,
+                    year_end = 2015) {
 
     message("Loading LUH2 states...")
     luh <- luh2_load(states_nc)

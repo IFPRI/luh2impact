@@ -30,6 +30,7 @@ luh2_extract_year <- function(luh, static_nc, year) {
     static <- terra::rast(static_nc)
     cellarea <- static[["carea"]]
     icwtr    <- static[["icwtr"]]
+    ccode    <- static[["ccode"]]
 
     luarea <- luh_yr * cellarea
     names(luarea) <- names(luh_yr)
@@ -37,6 +38,7 @@ luh2_extract_year <- function(luh, static_nc, year) {
     list(
         luarea   = luarea,
         cellarea = cellarea,
-        icwtr    = icwtr
+        icwtr    = icwtr,
+        ccode    = ccode
     )
 }

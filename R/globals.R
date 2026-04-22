@@ -11,5 +11,16 @@ utils::globalVariables(c(
     "pool", "area", "avail_kha", "share", "lyr", "year",
     "NEW_REGION",
     # luh2_crop_trend and pool_trend
-    "time_idx"
+    "time_idx",
+    # variables
+    "d_crop",
+    "d_natfor",
+    "d_past",
+    "d_other",
+    "d_plant",
+    "crop", "natfor", "past", "other", "plant",
+    "crop_tot", "natfor_tot", "past_tot", "other_tot", "plant_tot",
+    "pool_total", "scale_down", "crop_area_tot", "natfor_area_tot", "past_area_tot",
+    "other_area_tot", "plant_area_tot", "carea_kha", "urban_area",
+    "crop_share", "natfor_share", "past_share", "other_share", "plant_share", "urban_share"
 ))

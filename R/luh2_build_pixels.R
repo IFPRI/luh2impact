@@ -1,3 +1,4 @@
+# nolint start: object_usage_linter
 #' Build pixel-level data frame with weights
 #'
 #' Rasterizes the IMPACT country shapefile to match the shares grid, merges
@@ -22,11 +23,14 @@
 #' @return A data frame with one row per pixel containing areas, shares,
 #'   weights, and country assignments.
 #' @author Abhijeet Mishra, Claude Code
+#' @importFrom dplyr summarise left_join mutate select group_by
+#' @importFrom tidyr pivot_wider
+#' @importFrom magrittr %>%
 #' @export
 luh2_build_pixels <- function(shares, crop_trend, natfor_trend, other_trend,
                               cellarea, icwtr, cty_shp, landx0) {
     cty <- terra::vect(cty_shp)
-    cty$cty <- cty$NEW_REGION
+    names(cty)[names(cty) %in% "NEW_REGION"] <- "cty"
 
     # Project to match LUH2 CRS exactly
     cty <- terra::project(cty, "OGC:CRS84")
@@ -41,11 +45,8 @@ luh2_build_pixels <- function(shares, crop_trend, natfor_trend, other_trend,
     df <- as.data.frame(c(cty_rast, shares), xy = TRUE, na.rm = TRUE)
 
     # Normalize shares to sum to 1
-    share_cols <- c("crop_share", "natfor_share", "past_share", "other_share", "urban_share", "plant_share")
-    df$sharetotal <- rowSums(df[, share_cols])
-    df[, share_cols] <- pmin(pmax(df[, share_cols], 0), 1)
-    df[, share_cols] <- df[, share_cols] / df$sharetotal
-    df$sharetotal    <- rowSums(df[, share_cols])
+    share_cols <- paste0(c("crop", "natfor", "past", "other", "urban", "plant"), "_share")
+    df$sharetotal <- rowSums(df[, share_cols], na.rm = TRUE)
 
     # Drop SSD (not in IMPACT)
     df <- df[df$cty != "SSD", ]
@@ -57,7 +58,6 @@ luh2_build_pixels <- function(shares, crop_trend, natfor_trend, other_trend,
     df$carea_kha <- df$carea_km2 * 100 / 1000
 
     df$icwtr <- terra::extract(icwtr, pts)[, 2]
-    df$icwtr[is.na(df$icwtr)] <- 0
     df$land_frac <- 1 - df$icwtr
 
     # Pool areas
@@ -67,6 +67,95 @@ luh2_build_pixels <- function(shares, crop_trend, natfor_trend, other_trend,
     df[, area_cols] <- df[, pool_cols] * df$carea_kha
 
     df$avail_kha <- pmax(df$carea_kha * df$land_frac - df$urban_area, 0)
+
+    ##########################
+
+    # IPF adjustment (itrerative proportional fitting)
+    n_iter <- 20
+    tol <- 1
+    for (i in 1:n_iter) {
+
+        cty_totals <- df %>%
+            group_by(cty) %>%
+            summarise(
+                crop_tot   = sum(crop_area),
+                natfor_tot = sum(natfor_area),
+                past_tot   = sum(past_area),
+                other_tot  = sum(other_area),
+                plant_tot  = sum(plant_area)
+            )
+
+        deltas <- cty_totals %>%
+            left_join(landx0 %>%
+                          filter(yrs == 2021) %>%
+                          mutate(yrs = NULL) %>%
+                          pivot_wider(names_from = fland, values_from = value) %>%
+                          mutate(cty = as.character(cty)), by = "cty") %>%
+            mutate(
+                d_crop   = crop   - crop_tot,
+                d_natfor = natfor - natfor_tot,
+                d_past   = past   - past_tot,
+                d_other  = other  - other_tot,
+                d_plant  = plant  - plant_tot
+            ) %>%
+            select(cty, starts_with("d_"))
+
+        df <- df %>%
+            left_join(deltas, by = "cty") %>%
+            group_by(cty) %>%
+            mutate(
+                crop_area   = pmin(crop_area   + (crop_area   / sum(crop_area))   * d_crop,   avail_kha),
+                natfor_area = pmin(natfor_area + (natfor_area / sum(natfor_area)) * d_natfor, avail_kha),
+                past_area   = pmin(past_area   + (past_area   / sum(past_area))   * d_past,   avail_kha),
+                other_area  = pmin(other_area  + (other_area  / sum(other_area))  * d_other,  avail_kha),
+                plant_area  = pmin(plant_area  + (plant_area  / sum(plant_area))  * d_plant,  avail_kha)
+            ) %>%
+            ungroup() %>%
+            select(-starts_with("d_"))
+
+        df <- df %>%
+            mutate(
+                pool_total  = crop_area + natfor_area + past_area + other_area + plant_area,
+                scale_down  = ifelse(pool_total > avail_kha, avail_kha / pool_total, 1),
+                crop_area   = crop_area   * scale_down,
+                natfor_area = natfor_area * scale_down,
+                past_area   = past_area   * scale_down,
+                other_area  = other_area  * scale_down,
+                plant_area  = plant_area  * scale_down
+            ) %>%
+            select(-pool_total, -scale_down)
+
+        # convergence check
+        max_diff <- df %>%
+            group_by(cty) %>%
+            summarise(across(ends_with("_area"), sum, .names = "{.col}_tot")) %>%
+            left_join(landx0 %>%
+                          pivot_wider(names_from = fland, values_from = value) %>%
+                          mutate(cty = as.character(cty)), by = "cty") %>%
+            mutate(diff = abs(crop_area_tot - crop) + abs(natfor_area_tot - natfor) +
+                       abs(past_area_tot - past)  + abs(other_area_tot - other) +
+                       abs(plant_area_tot - plant)) %>%
+            pull(diff) %>% max(na.rm = TRUE)
+
+        cat("Iteration", i, "- max diff:", max_diff, "\n")
+        if(max_diff < tol) break
+    }
+
+    # recalc shares ----
+
+    df <- df %>%
+        mutate(
+            crop_share   = crop_area   / carea_kha,
+            natfor_share = natfor_area / carea_kha,
+            past_share   = past_area   / carea_kha,
+            other_share  = other_area  / carea_kha,
+            plant_share  = plant_area  / carea_kha,
+            urban_share  = urban_area  / carea_kha,
+            sharetotal   = crop_share + natfor_share + past_share +
+                other_share + plant_share + urban_share
+        )
+
+    ##########################
 
     # Pool trends
     df$crop_slope   <- terra::extract(crop_trend,   pts)[, 2]
@@ -107,4 +196,5 @@ luh2_build_pixels <- function(shares, crop_trend, natfor_trend, other_trend,
 
     df$pid <- paste0("p", seq_len(nrow(df)))
     df
+    # nolint end
 }
