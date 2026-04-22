@@ -48,7 +48,9 @@ luh2_plot_results <- function(output_dir, cty_shp, save_png = TRUE) {
         pools
     )
 
-    yrs_all <- names(lu_all[[1]])
+    ext_rast  <- terra::ext(lu_all[[1]][[1]])
+    ctyx      <- terra::crop(ctyx, ext_rast)
+    ext_cty   <- terra::ext(ctyx)
 
     # Load available area for share calculation
     m_out    <- gamstransfer::Container$new(file.path(output_dir, "solution_lu.gdx"))
@@ -66,16 +68,19 @@ luh2_plot_results <- function(output_dir, cty_shp, save_png = TRUE) {
     # ----------------------------------------------------------------
     plot_yrs <- intersect(c("2035", "2050"), yrs_all)
 
-    global_max <- max(sapply(pools, function(p) {
-        dx <- lu_all[[p]][[plot_yrs]] - lu_all[[p]][[1]]
-        max(abs(terra::minmax(dx)), na.rm = TRUE)
-    }))
+    dx_all <- stats::setNames(
+        lapply(pools, function(p) {
+            dx <- lu_all[[p]][[plot_yrs]] - lu_all[[p]][[1]]
+            terra::crop(dx, ctyx, mask = TRUE)
+        }),
+        pools
+    )
+
+    global_max <- max(sapply(dx_all, function(dx) max(abs(terra::minmax(dx)), na.rm = TRUE)))
 
     change_plots <- lapply(pools, function(p) {
-        dx <- lu_all[[p]][[plot_yrs]] - lu_all[[p]][[1]]
-
         ggplot2::ggplot() +
-            tidyterra::geom_spatraster(data = dx, maxcell = Inf) +
+            tidyterra::geom_spatraster(data = dx_all[[p]]) +
             tidyterra::geom_spatvector(data = ctyx, fill = NA, color = "black", linewidth = 0.2) +
             ggplot2::scale_fill_distiller(
                 palette   = "RdBu",
@@ -143,7 +148,34 @@ luh2_plot_results <- function(output_dir, cty_shp, save_png = TRUE) {
         ggplot2::labs(title = "Land use share")
 
     # ----------------------------------------------------------------
-    # Plot 3: Dominant land use per pixel
+    # Plot 3: Area (kha) faceted by pool, years 2021 and 2050
+    # ----------------------------------------------------------------
+    p_area <- ggplot2::ggplot() +
+        tidyterra::geom_spatvector(data = ctyx, fill = NA, color = "black") +
+        ggplot2::geom_tile(
+            data = share_df |> dplyr::filter(!is.na(area), area > 0),
+            ggplot2::aes(x = x, y = y, fill = area, alpha = share)
+        ) +
+        ggplot2::scale_fill_distiller(palette = "YlOrRd",
+                                      direction = 1,
+                                      name = "area (kha)",
+                                      na.value = "transparent") +
+        ggplot2::scale_alpha_continuous(
+            name   = "share",
+            range  = c(0, 1),
+            limits = c(0.005, 1),
+            breaks = seq(0.1, 1, 0.15)
+        ) +
+        ggplot2::coord_sf(
+            xlim = c(ext_run[1] - 1, ext_run[2] + 1),
+            ylim = c(ext_run[3] - 1, ext_run[4] + 1)
+        ) +
+        ggplot2::facet_grid(year ~ pool) +
+        ggplot2::theme_minimal() +
+        ggplot2::labs(title = "Land use area (kha)")
+
+    # ----------------------------------------------------------------
+    # Plot 4: Dominant land use per pixel
     # ----------------------------------------------------------------
     plot_df_dominant <- share_df |>
         dplyr::filter(share >= 0.005, !is.na(share), !is.infinite(share)) |>
@@ -191,12 +223,18 @@ luh2_plot_results <- function(output_dir, cty_shp, save_png = TRUE) {
             filename = file.path(output_dir, paste0(cty_name, "-dominant.png")),
             width    = 16, height = 10, bg = "white"
         )
+        ggplot2::ggsave(
+            plot     = p_area,
+            filename = file.path(output_dir, paste0(cty_name, "-area.png")),
+            width    = 16, height = 10, bg = "white"
+        )
         message("Plots saved to ", output_dir)
     }
 
     invisible(list(
         changes  = p_changes,
         shares   = p_shares,
+        area     = p_area,
         dominant = p_dominant
     ))
 }
