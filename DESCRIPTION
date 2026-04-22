@@ -1,7 +1,7 @@
 Package: luh2impact
 Type: Package
 Title: Process LUH2 Land Use Data for IMPACT Model Integration
-Version: 2.0.0
+Version: 2.1.0
 Authors@R: c(
     person(
       "Abhijeet", "Mishra",
