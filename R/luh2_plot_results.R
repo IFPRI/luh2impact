@@ -157,21 +157,30 @@ luh2_plot_results <- function(output_dir, cty_shp, save_png = TRUE) {
     # ----------------------------------------------------------------
     # Plot 3: Area (kha) faceted by pool, years 2021 and 2050
     # ----------------------------------------------------------------
+    area_filtered <- share_df |>
+        dplyr::filter(!is.na(area), area > 0, share >= 0.05) |>
+        dplyr::pull(area)
+
+    area_breaks <- seq(0, ceiling(max(area_filtered)), by = ceiling(max(area_filtered)) / 6)
+
+
     p_area <- ggplot2::ggplot() +
         tidyterra::geom_spatvector(data = ctyx, fill = NA, color = "black") +
         ggplot2::geom_tile(
-            data = share_df |> dplyr::filter(!is.na(area), area > 0),
-            ggplot2::aes(x = x, y = y, fill = area, alpha = share)
+            data = share_df |> dplyr::filter(!is.na(area), area > 0, share >= 0.05),
+            ggplot2::aes(x = x, y = y, fill = share, alpha = area)
         ) +
-        ggplot2::scale_fill_distiller(palette = "YlOrRd",
-                                      direction = 1,
-                                      name = "area (kha)",
-                                      na.value = "transparent") +
+        ggplot2::scale_fill_distiller(
+            palette   = "YlOrRd",
+            direction = 1,
+            name      = "share",
+            na.value  = "transparent"
+        ) +
         ggplot2::scale_alpha_continuous(
-            name   = "share",
-            range  = c(0, 1),
-            limits = c(0.005, 1),
-            breaks = seq(0.1, 1, 0.15)
+            name   = "area (kha)",
+            range  = c(0.2, 1),
+            trans  = "log",
+            breaks = area_breaks
         ) +
         ggplot2::coord_sf(
             xlim = c(ext_run[1] - 1, ext_run[2] + 1),
@@ -179,13 +188,24 @@ luh2_plot_results <- function(output_dir, cty_shp, save_png = TRUE) {
         ) +
         ggplot2::facet_grid(year ~ pool) +
         ggplot2::theme_minimal() +
-        ggplot2::labs(title = "Land use area (kha)")
+        ggplot2::labs(title = "Land use area (kha)") +
+        ggplot2::scale_alpha_binned(
+            name   = "area (kha)",
+            range  = c(0, 1),
+            breaks = area_breaks,
+            limits = c(0, ceiling(max(area_filtered)))
+        )
+    ggplot2::guides(
+        alpha = ggplot2::guide_bins(override.aes = list(fill = "black"))
+    )
 
     # ----------------------------------------------------------------
     # Plot 4: Dominant land use per pixel
     # ----------------------------------------------------------------
+    share_breaks <- seq(0, 1, by = 0.2)
+
     plot_df_dominant <- share_df |>
-        dplyr::filter(share >= 0.005, !is.na(share), !is.infinite(share)) |>
+        dplyr::filter(share >= 0.05, !is.na(share), !is.infinite(share)) |>
         dplyr::group_by(x, y, year) |>
         dplyr::slice_max(share, n = 1, with_ties = FALSE) |>
         dplyr::ungroup()
@@ -197,11 +217,11 @@ luh2_plot_results <- function(output_dir, cty_shp, save_png = TRUE) {
             ggplot2::aes(x = x, y = y, fill = pool, alpha = share)
         ) +
         ggplot2::scale_fill_manual(values = pool_colors, name = "pool") +
-        ggplot2::scale_alpha_continuous(
+        ggplot2::scale_alpha_binned(
             name   = "share",
             range  = c(0, 1),
-            limits = c(0.005, 1),
-            breaks = seq(0.1, 1, 0.15)
+            breaks = share_breaks,
+            limits = c(0, 1)
         ) +
         ggplot2::coord_sf(
             xlim = c(ext_run[1] - 1, ext_run[2] + 1),

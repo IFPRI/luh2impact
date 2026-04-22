@@ -17,9 +17,9 @@
 luh2_merge_planted <- function(luarea, cellarea, planted_tif) {
     pool_map <- list(
         crop   = c("c3ann", "c4ann", "c3per", "c4per", "c3nfx"),
-        natfor = c("primf", "secdf"),
+        natfor = c("primf", "primn", "secdf"),
         range  = c("range", "pastr"),
-        other  = c("primn", "secdn"),
+        other  = c("secdn"),
         urban  = "urban"
     )
 

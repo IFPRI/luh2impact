@@ -40,13 +40,13 @@ luh2gdx <- function(states_nc,
 
     message("Computing natural forest trend (", year_start, "-", year_end, ")...")
     natfor_trend <- luh2_pool_trend(luh,
-                                    pool_vars  = c("primf", "secdf"),
+                                    pool_vars  = c("primf", "primn", "secdf"),
                                     year_start = year_start,
                                     year_end   = year_end)
 
     message("Computing other land trend (", year_start, "-", year_end, ")...")
     other_trend <- luh2_pool_trend(luh,
-                                   pool_vars  = c("primn", "secdn"),
+                                   pool_vars  = c("secdn"),
                                    year_start = year_start,
                                    year_end   = year_end)
 

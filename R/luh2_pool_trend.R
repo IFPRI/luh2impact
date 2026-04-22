@@ -6,8 +6,8 @@
 #' @param luh A `SpatRaster` returned by [luh2_load()].
 #' @param pool_vars Character vector of LUH2 layer name prefixes to sum
 #'   (e.g. `c("c3ann", "c4ann", "c3per", "c4per", "c3nfx")` for crop,
-#'   `c("primf", "secdf")` for natural forest,
-#'   `c("primn", "secdn")` for other).
+#'   `c("primf", "primn", "secdf")` for natural forest,
+#'   `c("secdn")` for other).
 #' @param year_start Integer. First year of the trend period (e.g. 1990).
 #' @param year_end Integer. Last year of the trend period (e.g. 2015).
 #'

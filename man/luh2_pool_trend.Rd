@@ -11,8 +11,8 @@ luh2_pool_trend(luh, pool_vars, year_start, year_end)
 
 \item{pool_vars}{Character vector of LUH2 layer name prefixes to sum
 (e.g. `c("c3ann", "c4ann", "c3per", "c4per", "c3nfx")` for crop,
-`c("primf", "secdf")` for natural forest,
-`c("primn", "secdn")` for other).}
+`c("primf", "primn", "secdf")` for natural forest,
+`c("secdn")` for other).}
 
 \item{year_start}{Integer. First year of the trend period (e.g. 1990).}
 
