@@ -22,5 +22,6 @@ utils::globalVariables(c(
     "crop_tot", "natfor_tot", "past_tot", "other_tot", "plant_tot",
     "pool_total", "scale_down", "crop_area_tot", "natfor_area_tot", "past_area_tot",
     "other_area_tot", "plant_area_tot", "carea_kha", "urban_area",
-    "crop_share", "natfor_share", "past_share", "other_share", "plant_share", "urban_share"
+    "crop_share", "natfor_share", "past_share", "other_share", "plant_share", "urban_share",
+    "suit_crop", "suit_natfor", "suit_past", "suit_other"
 ))

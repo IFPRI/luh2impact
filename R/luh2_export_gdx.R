@@ -105,6 +105,19 @@ luh2_export_gdx <- function(df, landx0, output_gdx) {
                    records = df[, c("pid", "w_plant")],
                    description = "planted forest proximity weight per pixel")
 
+    # suit: suitability index per pixel per pool
+    suit_df <- df %>%
+        dplyr::select(pid,
+                      crop   = suit_crop,
+                      natfor = suit_natfor,
+                      past   = suit_past,
+                      other  = suit_other) %>%
+        tidyr::pivot_longer(-pid, names_to = "fland", values_to = "value")
+
+    m$addParameter("suit", c(pid_set, fland_set),
+                   records = suit_df,
+                   description = "LUH2 historical suitability index per pixel per pool (0-1)")
+
     m$write(output_gdx)
     invisible(output_gdx)
 }

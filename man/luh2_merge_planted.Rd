@@ -4,7 +4,7 @@
 \alias{luh2_merge_planted}
 \title{Merge planted forest layer into LUH2 shares}
 \usage{
-luh2_merge_planted(luarea, cellarea, planted_tif)
+luh2_merge_planted(luarea, cellarea, planted_tif, fstnf, cty_shp)
 }
 \arguments{
 \item{luarea}{A `SpatRaster` of land use areas (km²) returned inside the
@@ -14,6 +14,11 @@ list from [luh2_extract_year()].}
 [luh2_extract_year()]).}
 
 \item{planted_tif}{Path to the planted forest GeoTIFF (e.g. `sdpt_global.tif`).}
+
+\item{fstnf}{Flag if a pixel is forested or not.}
+
+\item{cty_shp}{Path to the IMPACT regions shapefile. Must contain a `NEW_REGION`
+field used as the country identifier.}
 }
 \value{
 A `SpatRaster` of adjusted land use shares (one layer per pool,

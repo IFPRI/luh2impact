@@ -5,6 +5,8 @@
 #' all raster data into a pixel-level data frame, computes land pool areas,
 #' available land, and spatial weights for each pool.
 #'
+#' @param luh A `SpatRaster` of historical land use shares returned by
+#'  [luh2_load()].
 #' @param shares A `SpatRaster` of adjusted land use shares returned by
 #'   [luh2_merge_planted()].
 #' @param crop_trend A single-layer `SpatRaster` of crop slope returned by
@@ -27,7 +29,7 @@
 #' @importFrom tidyr pivot_wider
 #' @importFrom magrittr %>%
 #' @export
-luh2_build_pixels <- function(shares, crop_trend, natfor_trend, other_trend,
+luh2_build_pixels <- function(luh, shares, crop_trend, natfor_trend, other_trend,
                               cellarea, icwtr, cty_shp, landx0) {
     cty <- terra::vect(cty_shp)
     names(cty)[names(cty) %in% "NEW_REGION"] <- "cty"
@@ -173,18 +175,33 @@ luh2_build_pixels <- function(shares, crop_trend, natfor_trend, other_trend,
     df$plant_prox <- terra::extract(plant_prox, pts)[, 2]
     df$plant_prox[is.na(df$plant_prox)] <- 0
 
+    # Generate suitability numbers
+
+    suit <- luh2_suitability(luh = luh)
+
+    pts <- terra::vect(df, geom = c("x", "y"), crs = terra::crs(cty_rast))
+
+    df$suit_crop   <- terra::extract(suit[["suit_crop"]],   pts)[, 2]
+    df$suit_natfor <- terra::extract(suit[["suit_natfor"]], pts)[, 2]
+    df$suit_past   <- terra::extract(suit[["suit_past"]],   pts)[, 2]
+    df$suit_other  <- terra::extract(suit[["suit_other"]],  pts)[, 2]
+
+    df[, c("suit_crop","suit_natfor","suit_past","suit_other")] <-
+        lapply(df[, c("suit_crop","suit_natfor","suit_past","suit_other")],
+               function(x) ifelse(is.na(x), 0, x))
+
     # Pixel weights per country
     df <- df |>
         dplyr::group_by(cty) |>
         dplyr::mutate(
-            w_crop_exp    = (crop_area   * pmax(crop_slope,    0)) / sum(crop_area   * pmax(crop_slope,    0), na.rm = TRUE),
-            w_crop_con    = (crop_area   * pmax(-crop_slope,   0)) / sum(crop_area   * pmax(-crop_slope,   0), na.rm = TRUE),
-            w_natfor_loss = (natfor_area * pmax(-natfor_slope, 0)) / sum(natfor_area * pmax(-natfor_slope, 0), na.rm = TRUE),
-            w_natfor_gain = (natfor_area * pmax(natfor_slope, 0)) / sum(natfor_area * pmax(natfor_slope, 0), na.rm = TRUE),
-            w_other_loss  = (other_area  * pmax(-other_slope,  0)) / sum(other_area  * pmax(-other_slope,  0), na.rm = TRUE),
-            w_other_gain  = (other_area  * pmax(other_slope,  0)) / sum(other_area  * pmax(other_slope,  0), na.rm = TRUE),
-            w_past        = past_area  / sum(past_area,  na.rm = TRUE),
-            w_plant       = (plant_area * plant_prox) / sum(plant_area * plant_prox, na.rm = TRUE)
+            w_crop_exp    = (crop_area   * pmax(crop_slope,    0) * suit_crop)   / sum(crop_area   * pmax(crop_slope,    0) * suit_crop,   na.rm = TRUE),
+            w_crop_con    = (crop_area   * pmax(-crop_slope,   0) * suit_crop)   / sum(crop_area   * pmax(-crop_slope,   0) * suit_crop,   na.rm = TRUE),
+            w_natfor_loss = (natfor_area * pmax(-natfor_slope, 0) * suit_natfor) / sum(natfor_area * pmax(-natfor_slope, 0) * suit_natfor, na.rm = TRUE),
+            w_natfor_gain = (natfor_area * pmax(natfor_slope,  0) * suit_natfor) / sum(natfor_area * pmax(natfor_slope,  0) * suit_natfor, na.rm = TRUE),
+            w_other_loss  = (other_area  * pmax(-other_slope,  0) * suit_other)  / sum(other_area  * pmax(-other_slope,  0) * suit_other,  na.rm = TRUE),
+            w_other_gain  = (other_area  * pmax(other_slope,   0) * suit_other)  / sum(other_area  * pmax(other_slope,   0) * suit_other,  na.rm = TRUE),
+            w_past        = (past_area   * suit_past)                             / sum(past_area   * suit_past,                           na.rm = TRUE),
+            w_plant       = (plant_area  * plant_prox)                            / sum(plant_area  * plant_prox,                          na.rm = TRUE)
         ) |>
         dplyr::ungroup()
 

@@ -34,12 +34,10 @@ luh2_plot_results <- function(output_dir, cty_shp, save_png = TRUE) {
     # Load country shapefile and filter to current country
     cty_vect <- terra::vect(cty_shp)
     ctyx     <- cty_vect[cty_vect$NEW_REGION %in% cty_name, ]
-    ext_cty  <- terra::ext(ctyx)
 
     # Clip CONUS for USA to avoid Alaska distortion
     if (cty_name == "USA") {
         ctyx    <- terra::crop(ctyx, terra::ext(-125, -66, 24, 50))
-        ext_cty <- terra::ext(ctyx)
     }
 
     # Load all pool rasters
@@ -51,7 +49,6 @@ luh2_plot_results <- function(output_dir, cty_shp, save_png = TRUE) {
     yrs_all <- names(lu_all[[1]])
     ext_rast  <- terra::ext(lu_all[[1]][[1]])
     ctyx      <- terra::crop(ctyx, ext_rast)
-    ext_cty   <- terra::ext(ctyx)
 
     # Load available area for share calculation
     m_out    <- gamstransfer::Container$new(file.path(output_dir, "solution_lu.gdx"))
@@ -80,52 +77,6 @@ luh2_plot_results <- function(output_dir, cty_shp, save_png = TRUE) {
             dplyr::left_join(avail_df[, c("x", "y", "avail_kha")], by = c("x", "y")) |>
             dplyr::mutate(share = area / avail_kha, year = yr)
     }))
-
-    # ----------------------------------------------------------------
-    # Plot 1: Changes vs 2021 for years 2035 and 2050
-    # ----------------------------------------------------------------
-
-    plot_yrs <- intersect(c("2035", "2050"), yrs_all)
-
-    dx_all <- stats::setNames(
-        lapply(pools, function(p) {
-            dx <- lu_all[[p]][[plot_yrs]] - lu_all[[p]][[1]]
-            terra::crop(dx, ctyx, mask = TRUE)
-        }),
-        pools
-    )
-
-    ext_cty <- c(range(share_df$x, na.rm = TRUE), range(share_df$y, na.rm = TRUE))
-
-    global_max <- max(sapply(dx_all, function(dx) max(abs(terra::minmax(dx)), na.rm = TRUE)))
-
-    change_plots <- lapply(pools, function(p) {
-        ggplot2::ggplot() +
-            tidyterra::geom_spatraster(data = dx_all[[p]]) +
-            tidyterra::geom_spatvector(data = ctyx, fill = NA, color = "black", linewidth = 0.2) +
-            ggplot2::scale_fill_distiller(
-                palette   = "RdBu",
-                direction = 1,
-                limits    = c(-global_max, global_max),
-                na.value  = "transparent",
-                name      = paste0("000ha\nrange:+/-", round(global_max, 2))
-            ) +
-            ggplot2::facet_grid(. ~ lyr) +
-            ggplot2::coord_sf(
-                xlim = c(ext_cty[1] - 1, ext_cty[2] + 1),
-                ylim = c(ext_cty[3] - 1, ext_cty[4] + 1)
-            ) +
-            ggplot2::theme_minimal() +
-            ggplot2::labs(title = paste0("Change in lu_", p, " vs 2021"))
-    })
-
-    p_changes <- ggpubr::ggarrange(
-        plotlist     = change_plots,
-        ncol         = 3,
-        nrow         = 2,
-        common.legend = TRUE,
-        legend       = "bottom"
-    )
 
     # ----------------------------------------------------------------
     # Plot 2: Shares faceted by pool and year (2021 and 2050)
@@ -158,7 +109,7 @@ luh2_plot_results <- function(output_dir, cty_shp, save_png = TRUE) {
     # Plot 3: Area (kha) faceted by pool, years 2021 and 2050
     # ----------------------------------------------------------------
     area_filtered <- share_df |>
-        dplyr::filter(!is.na(area), area > 0, share >= 0.05) |>
+        dplyr::filter(!is.na(area), area > 0, share >= 0.005) |>
         dplyr::pull(area)
 
     area_breaks <- seq(0, ceiling(max(area_filtered)), by = ceiling(max(area_filtered)) / 6)
@@ -167,7 +118,7 @@ luh2_plot_results <- function(output_dir, cty_shp, save_png = TRUE) {
     p_area <- ggplot2::ggplot() +
         tidyterra::geom_spatvector(data = ctyx, fill = NA, color = "black") +
         ggplot2::geom_tile(
-            data = share_df |> dplyr::filter(!is.na(area), area > 0, share >= 0.05),
+            data = share_df |> dplyr::filter(!is.na(area), area > 0, share >= 0.005),
             ggplot2::aes(x = x, y = y, fill = share, alpha = area)
         ) +
         ggplot2::scale_fill_distiller(
@@ -194,10 +145,50 @@ luh2_plot_results <- function(output_dir, cty_shp, save_png = TRUE) {
             range  = c(0, 1),
             breaks = area_breaks,
             limits = c(0, ceiling(max(area_filtered)))
-        )
+        ) +
     ggplot2::guides(
         alpha = ggplot2::guide_bins(override.aes = list(fill = "black"))
     )
+
+    # ----------------------------------------------------------------
+    # Plot 3a: Area (kha) faceted by pool, years 2050 vs 2021
+    # ----------------------------------------------------------------
+    area_change <- share_df |>
+        filter(year %in% c(2021, 2050), share >= 0.005) |>
+        group_by(x, y, pool) |>
+        mutate(
+            area_change = if (all(c(2021, 2050) %in% year)) area - area[year == 2021] else NA_real_
+        ) |>
+        filter(!is.na(area_change), area_change != 0)
+
+    area_filtered <- area_change |> pull(area_change)
+
+    area_breaks <- seq(-ceiling(max(area_filtered)),
+                       ceiling(max(area_filtered)),
+                       by = ceiling(max(area_filtered)) / 3)
+
+
+    p_area_change <- ggplot2::ggplot() +
+        ggplot2::geom_tile(
+            data = area_change |> dplyr::filter(!is.na(area), area > 0, share >= 0.005),
+            ggplot2::aes(x = x, y = y, fill = area_change)
+        ) +
+        tidyterra::geom_spatvector(data = ctyx, fill = NA, color = "black") +
+        ggplot2::scale_fill_gradient2(
+            low      = "red",
+            mid      = "white",
+            high     = "green",
+            midpoint = 0,
+            name     = "area change (kha)",
+            na.value = "transparent"
+        ) +
+        ggplot2::coord_sf(
+            xlim = c(ext_run[1] - 1, ext_run[2] + 1),
+            ylim = c(ext_run[3] - 1, ext_run[4] + 1)
+        ) +
+        ggplot2::facet_wrap(. ~ pool) +
+        ggplot2::theme_minimal() +
+        ggplot2::labs(title = "Land use area change 2021-2050 (Kha)")
 
     # ----------------------------------------------------------------
     # Plot 4: Dominant land use per pixel
@@ -236,30 +227,29 @@ luh2_plot_results <- function(output_dir, cty_shp, save_png = TRUE) {
     # ----------------------------------------------------------------
     if (save_png) {
         ggplot2::ggsave(
-            plot     = p_changes,
-            filename = file.path(output_dir, paste0(cty_name, "-changes.png")),
-            width    = 21, height = 10, bg = "white"
-        )
-        ggplot2::ggsave(
             plot     = p_shares,
             filename = file.path(output_dir, paste0(cty_name, "-shares.png")),
-            width    = 16, height = 10, bg = "white"
+            width    = 16, height = 7, bg = "white"
         )
         ggplot2::ggsave(
             plot     = p_dominant,
             filename = file.path(output_dir, paste0(cty_name, "-dominant.png")),
-            width    = 16, height = 10, bg = "white"
+            width    = 16, height = 8, bg = "white"
         )
         ggplot2::ggsave(
             plot     = p_area,
             filename = file.path(output_dir, paste0(cty_name, "-area.png")),
-            width    = 16, height = 10, bg = "white"
+            width    = 16, height = 7, bg = "white"
+        )
+        ggplot2::ggsave(
+            plot     = p_area_change,
+            filename = file.path(output_dir, paste0(cty_name, "-areachange.png")),
+            width    = 12, height = 8, bg = "white"
         )
         message("Plots saved to ", output_dir)
     }
 
     invisible(list(
-        changes  = p_changes,
         shares   = p_shares,
         area     = p_area,
         dominant = p_dominant

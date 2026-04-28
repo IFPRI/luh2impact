@@ -54,13 +54,18 @@ luh2gdx <- function(states_nc,
     extracted <- luh2_extract_year(luh, static_nc, year)
 
     message("Merging planted forest...")
-    shares <- luh2_merge_planted(extracted$luarea, extracted$cellarea, planted_tif)
+    shares <- luh2_merge_planted(luarea = extracted$luarea,
+                                 cellarea = extracted$cellarea,
+                                 planted_tif = planted_tif,
+                                 fstnf = extracted$fstnf,
+                                 cty_shp = cty_shp)
 
     message("Reading IMPACT land use data...")
     landx0 <- DOORMAT::readGDX(gdx = impact_gdx, name = "LANDX0", quick_df = TRUE)$data
 
     message("Building pixel data frame...")
     df <- luh2_build_pixels(
+        luh          = luh,
         shares       = shares,
         crop_trend   = crop_trend,
         natfor_trend = natfor_trend,

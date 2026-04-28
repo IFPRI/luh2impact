@@ -5,6 +5,7 @@
 \title{Build pixel-level data frame with weights}
 \usage{
 luh2_build_pixels(
+  luh,
   shares,
   crop_trend,
   natfor_trend,
@@ -16,6 +17,9 @@ luh2_build_pixels(
 )
 }
 \arguments{
+\item{luh}{A `SpatRaster` of historical land use shares returned by
+[luh2_load()].}
+
 \item{shares}{A `SpatRaster` of adjusted land use shares returned by
 [luh2_merge_planted()].}
 

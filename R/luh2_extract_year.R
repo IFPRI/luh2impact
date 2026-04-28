@@ -31,14 +31,15 @@ luh2_extract_year <- function(luh, static_nc, year) {
     cellarea <- static[["carea"]]
     icwtr    <- static[["icwtr"]]
     ccode    <- static[["ccode"]]
+    fstnf    <- static[["fstnf"]]
 
     luarea <- luh_yr * cellarea
-    names(luarea) <- names(luh_yr)
 
     list(
         luarea   = luarea,
         cellarea = cellarea,
         icwtr    = icwtr,
-        ccode    = ccode
+        ccode    = ccode,
+        fstnf    = fstnf
     )
 }
