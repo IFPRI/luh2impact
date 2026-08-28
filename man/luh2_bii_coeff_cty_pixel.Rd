@@ -5,18 +5,16 @@
 \title{Compute per-country BII coefficients per land pool from pixel imagery}
 \usage{
 luh2_bii_coeff_cty_pixel(
-  pixel_csv = system.file("extdata", "pixel_bii_coeff_r090.csv", package = "luh2impact")
+  pixel_csv = system.file("extdata", "pixel_bii_coeff_fraction_r090.csv", package =
+    "luh2impact")
 )
 }
 \arguments{
 \item{pixel_csv}{Path to the pixel-derived BII coefficient CSV. Defaults
-  to the copy shipped with the package
-  (`inst/extdata/pixel_bii_coeff_r090.csv`).
-
-A handful of countries have no HHLU pixels at all for `past` (1 country)
-or `plant` (3 countries) - those rows are dropped (`value` would
-otherwise be `NA`), matching how `LAND00` already omits a `fland` pool
-entirely for a country with none of it.}
+to the fraction-based copy shipped with the package
+(`inst/extdata/pixel_bii_coeff_fraction_r090.csv`). Pass
+`system.file("extdata", "pixel_bii_coeff_r090.csv", package =
+"luh2impact")` to use the original HHLU-based version instead.}
 }
 \value{
 A data frame with columns `cty`, `fland`, `value` (BII
@@ -26,23 +24,36 @@ A data frame with columns `cty`, `fland`, `value` (BII
 }
 \description{
 Reads the pixel-level `BII_COEFF(cty,fland)` table derived from Trong
-Nguyen's 2020 High-Resolution Harmonized Land Use (HHLU, 0.004deg) and
-Biodiversity Intactness Index (BII, 0.02deg) rasters, as an alternative
-to the literature-based [luh2_bii_coeff_cty()]. Unlike that function,
-every pool (`crop`, `urban`, `past`, `plant`, `natfor`, `other`) gets a
-country-specific value derived directly from imagery, not just `natfor`.
+Nguyen's 2020 rasters, as an alternative to the literature-based
+[luh2_bii_coeff_cty()]. Unlike that function, every pool (`crop`,
+`urban`, `past`, `plant`, `natfor`, `other`) gets a country-specific
+value derived directly from imagery, not just `natfor`.
 }
 \details{
-`crop`/`urban`/`past`/`plant` are direct area-weighted mean BII scores
-over HHLU pixels of the matching land-use class within each country.
+The default CSV is built from Nguyen's `Landuse_Fraction` rasters
+(0.02deg fractional coverage per class: agro/crop/past/prim/secd/urbn),
+which are pixel-for-pixel co-registered with his BII raster (verified
+identical size/pixel size/origin/extent), so each pool's coefficient is
+simply a fraction-weighted mean BII score. This superseded an earlier
+version built from the raw 500m High-Resolution Harmonized Land Use
+(HHLU) raster via a custom cross-resolution alignment: the two were
+cross-checked and agree to correlations of 0.9999+ on every pool (max
+absolute difference under 0.008), so the fraction-based version was kept
+as the faster, better-aligned production path. `crop`/`urban`/`past`/
+`plant` are direct fraction-weighted mean BII scores for the matching
+land-use class within each country.
 
-`natfor`/`other` cannot be split from HHLU pixel values alone - HHLU's
-three "natural vegetation" classes (primary minimal-use / primary /
-secondary) are organized by successional/management-intensity stage, not
-by cover type, and no grouping of them correlated well with this
-package's existing FAOSTAT-derived natfor/other area split (best
-correlation tested across 6 groupings was ~0.35). Instead, the combined
-natural-land pixel score was split back into `natfor`/`other` assuming
+`natfor`/`other` cannot be split from this pixel data alone - Nguyen's
+"primary"/"secondary vegetation" classes are organized by
+successional/management-intensity stage, not by cover type (his own
+methods paper, Table 2, defines "primary vegetation" as any
+low-disturbance land regardless of biome - forest, grassland, desert,
+tundra combined - and "secondary vegetation" mixes regenerating natural
+forest with commercial timber plantations), and no grouping of the raw
+HHLU classes correlated well with this package's existing
+FAOSTAT-derived natfor/other area split (best correlation tested across
+6 groupings was ~0.35). Instead, the combined natural-land pixel score
+was split back into `natfor`/`other` assuming
 `other_coeff = 0.90 * natfor_coeff`, solved per country so the
 `LAND00`-area-weighted average of the two still matches the
 pixel-observed combined value. In countries where `other` area vastly
@@ -51,9 +62,27 @@ NER, TCD), this algebra would push `natfor` above the physical BII
 ceiling of 1.0; those 7 countries have `natfor` capped at 1.0 with
 `other` re-solved from the mass-balance equation alone.
 
-See `pixel_bii_coeff_r090.csv`'s sibling `README.txt`, shipped alongside
-it under `inst/extdata`, for the full two-script pipeline that produced
-it from the raw rasters plus this package's `LAND00`.
+Per the same paper (Table 3), Nguyen's own fitted BII model only
+retained Primary vegetation, Cropland, and Urban land fractions as
+significant predictors (plus human-impact covariates: roads, population
+density, travel time, geographic distance) - pasture and agroforestry
+fractions did not survive stepwise variable selection as independent
+predictors. So `past`/`plant` here are real values read off the
+predicted BII surface at those pixel locations, but their variation is
+driven by neighborhood primary-vegetation/cropland/urban composition and
+human-footprint covariates rather than a dedicated pasture/agroforestry
+model effect - `crop`/`urban` rest on directly fitted model effects and
+are the most solid of the six pools.
+
+See the `README.txt` shipped alongside the source CSVs under
+`inst/extdata` for the full pipeline (both the fraction-based production
+scripts and the original HHLU-based ones kept for reference) that
+produced them from the raw rasters plus this package's `LAND00`.
+
+A handful of countries have no pixels at all for `past` (1 country) or
+`plant` (3 countries) - those rows are dropped (`value` would otherwise
+be `NA`), matching how `LAND00` already omits a `fland` pool entirely
+for a country with none of it.
 }
 \author{
 Abhijeet Mishra, Claude Code

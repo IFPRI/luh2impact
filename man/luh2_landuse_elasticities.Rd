@@ -96,7 +96,8 @@ Ignored when `bii_pixel_csv` is supplied.}
 
 \item{bii_pixel_csv}{Optional path to a pixel-derived BII coefficient CSV
 (see [luh2_bii_coeff_cty_pixel()]). If supplied, `BII_COEFF` is built
-from this imagery-derived table instead of the literature-based
+from this imagery-derived table instead of the literature-based.
+use bii_pixel_csv <- system.file("extdata", "pixel_bii_coeff_fraction_r090.csv", package = "luh2impact")
 [luh2_bii_coeff_cty()]. Default `NULL` (use the literature-based
 coefficients).}
 }
