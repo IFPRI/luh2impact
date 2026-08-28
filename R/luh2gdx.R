@@ -14,6 +14,9 @@
 #' @param year_start Integer. Start year for trend estimation (e.g. 1990).
 #' @param year_end Integer. End year for trend estimation (e.g. 2015).
 #'
+#' @param pa_tif Path to the WDPA protected area raster (km^2 per pixel)
+#'   produced by [wdpa_process()]. If `NULL`, PA area is set to zero.
+#'
 #' @return Invisibly returns the path to the written GDX file.
 #' @author Abhijeet Mishra, Claude Code
 #' @importFrom dplyr filter select mutate group_by ungroup summarise left_join across pull starts_with ends_with
@@ -27,7 +30,8 @@ luh2gdx <- function(states_nc,
                     output_gdx,
                     year = 2015,
                     year_start = 1990,
-                    year_end = 2015) {
+                    year_end = 2015,
+                    pa_tif = NULL) {
 
     message("Loading LUH2 states...")
     luh <- luh2_load(states_nc)
@@ -73,7 +77,8 @@ luh2gdx <- function(states_nc,
         cellarea     = extracted$cellarea,
         icwtr        = extracted$icwtr,
         cty_shp      = cty_shp,
-        landx0       = landx0
+        landx0       = landx0,
+        pa_tif       = pa_tif
     )
 
     message("Exporting GDX to ", output_gdx, "...")

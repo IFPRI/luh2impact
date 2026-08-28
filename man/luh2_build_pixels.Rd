@@ -13,7 +13,8 @@ luh2_build_pixels(
   cellarea,
   icwtr,
   cty_shp,
-  landx0
+  landx0,
+  pa_tif = NULL
 )
 }
 \arguments{
@@ -32,7 +33,7 @@ returned by [luh2_pool_trend()].}
 \item{other_trend}{A single-layer `SpatRaster` of other land slope
 returned by [luh2_pool_trend()].}
 
-\item{cellarea}{A single-layer `SpatRaster` of cell areas in km².}
+\item{cellarea}{A single-layer `SpatRaster` of cell areas in km^2.}
 
 \item{icwtr}{A single-layer `SpatRaster` of ice/water fraction.}
 
@@ -41,10 +42,13 @@ field used as the country identifier.}
 
 \item{landx0}{A data frame of IMPACT land use results with columns
 `cty`, `fland`, `yrs`, `value`.}
+
+\item{pa_tif}{Path to the WDPA protected area raster (km^2 per pixel)
+produced by [wdpa_process()]. If `NULL`, PA area is not included.}
 }
 \value{
 A data frame with one row per pixel containing areas, shares,
-  weights, and country assignments.
+  weights, country assignments, and protected area coverage.
 }
 \description{
 Rasterizes the IMPACT country shapefile to match the shares grid, merges

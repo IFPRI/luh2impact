@@ -9,8 +9,8 @@
 #'
 #' @return A named list:
 #' \describe{
-#'   \item{`luarea`}{`SpatRaster` of land use areas in km² per pool.}
-#'   \item{`cellarea`}{Single-layer `SpatRaster` of cell areas in km².}
+#'   \item{`luarea`}{`SpatRaster` of land use areas in km^2 per pool.}
+#'   \item{`cellarea`}{Single-layer `SpatRaster` of cell areas in km^2.}
 #'   \item{`icwtr`}{Single-layer `SpatRaster` of ice/water fraction.}
 #' }
 #' @author Abhijeet Mishra, Claude Code

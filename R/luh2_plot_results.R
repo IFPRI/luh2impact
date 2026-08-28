@@ -104,8 +104,8 @@ luh2_plot_results <- function(output_dir, cty_shp, save_png = TRUE) {
         ggplot2::facet_grid(year ~ pool) +
         ggplot2::theme_minimal(base_size = 15) +
         ggplot2::labs(title = "Land use share") +
-        ggplot2::theme(axis.title = element_blank(),
-                       axis.text = element_text(size = 5))
+        ggplot2::theme(axis.title = ggplot2::element_blank(),
+                       axis.text = ggplot2::element_text(size = 5))
 
     # ----------------------------------------------------------------
     # Plot 3: Area (kha) faceted by pool, years 2021 and 2050
@@ -151,8 +151,8 @@ luh2_plot_results <- function(output_dir, cty_shp, save_png = TRUE) {
     ggplot2::guides(
         alpha = ggplot2::guide_bins(override.aes = list(fill = "black"))
     ) +
-        ggplot2::theme(axis.title = element_blank(),
-                       axis.text = element_text(size = 5))
+        ggplot2::theme(axis.title = ggplot2::element_blank(),
+                       axis.text = ggplot2::element_text(size = 5))
 
     # ----------------------------------------------------------------
     # Plot 3a: Area (kha) faceted by pool, years 2050 vs 2021
@@ -193,12 +193,73 @@ luh2_plot_results <- function(output_dir, cty_shp, save_png = TRUE) {
         ggplot2::facet_wrap(. ~ pool, nrow = 1) +
         ggplot2::theme_minimal(base_size = 15) +
         ggplot2::labs(title = "Land use area change 2021-2050 (Kha)") +
-        ggplot2::theme(axis.title = element_blank(),
+        ggplot2::theme(axis.title = ggplot2::element_blank(),
                        legend.position = "bottom",
                        legend.key.width = unit(1, "cm"),
                        legend.key.height = unit(0.4, "cm")) +
-        ggplot2::theme(axis.title = element_blank(),
-                       axis.text = element_text(size = 5))
+        ggplot2::theme(axis.title = ggplot2::element_blank(),
+                       axis.text = ggplot2::element_text(size = 5))
+
+    # ----------------------------------------------------------------
+    # Plot 3b: Dominant land use per pixel - BLENDED
+    # ----------------------------------------------------------------
+
+    top2 <- share_df |>
+        filter(year == "2021") |>
+        group_by(pool) |>
+        summarise(total = sum(area, na.rm = TRUE)) |>
+        dplyr::slice_max(total, n = 2) |>
+        pull(pool)
+
+    rgb_map <- data.frame(
+        pool = c(top2, "all others"),
+        r    = c(1, 0, 0),
+        g    = c(0, 1, 0),
+        b    = c(0, 0, 1))
+
+    pixel_rgb <- share_df |>
+        filter(year %in% c("2021", "2050"), !is.na(share)) |>
+        mutate(pool = ifelse(pool %in% top2, pool, "all others")) |>
+        group_by(x, y, year, pool) |>
+        summarise(share = sum(share, na.rm = TRUE), .groups = "drop") |>
+        left_join(rgb_map, by = "pool") |>
+        group_by(x, y, year) |>
+        summarise(
+            r_mix = sum(r * share, na.rm = TRUE),
+            g_mix = sum(g * share, na.rm = TRUE),
+            b_mix = sum(b * share, na.rm = TRUE),
+            .groups = "drop"
+        ) |>
+        mutate(
+            max_ch = pmax(r_mix, g_mix, b_mix, 1),
+            hex    = grDevices::rgb(r_mix / max_ch, g_mix / max_ch, b_mix / max_ch))
+
+    p_rgb <- ggplot2::ggplot() +
+        ggplot2::geom_tile(
+            data = pixel_rgb,
+            ggplot2::aes(x = x, y = y, fill = hex)
+        ) +
+        ggplot2::scale_fill_identity() +
+        tidyterra::geom_spatvector(data = ctyx, fill = NA, color = "black") +
+        ggplot2::coord_sf(
+            xlim = c(ext_run[1] - 1, ext_run[2] + 1),
+            ylim = c(ext_run[3] - 1, ext_run[4] + 1)
+        ) +
+        ggplot2::facet_wrap(~ year) +
+        ggplot2::theme_minimal(base_size = 15) +
+        ggplot2::labs(title = paste("Land use composition - top 3 pools:", paste(c(top2, "all others"), collapse = ", "))) +
+        ggplot2::theme(
+            axis.title       = ggplot2::element_blank(),
+            axis.text        = ggplot2::element_text(size = 5),
+            legend.position  = "bottom",
+            legend.key.width  = unit(1, "cm"),
+            legend.key.height = unit(0.4, "cm")) +
+        ggplot2::annotate(
+            "text",
+            x = ext_run[1], y = ext_run[3],
+            label = paste(c(top2, "all others"), c("= red", "= green", "= blue"), collapse = "\n"),
+            hjust = 0, vjust = 0, size = 3
+        )
 
     # ----------------------------------------------------------------
     # Plot 4: Dominant land use per pixel
@@ -231,9 +292,9 @@ luh2_plot_results <- function(output_dir, cty_shp, save_png = TRUE) {
         ggplot2::facet_wrap(year ~ .) +
         ggplot2::theme_minimal(base_size = 15) +
         ggplot2::labs(title = "Dominant land use share") +
-        ggplot2::theme(axis.title = element_blank()) +
-        ggplot2::theme(axis.title = element_blank(),
-                       axis.text = element_text(size = 5))
+        ggplot2::theme(axis.title = ggplot2::element_blank()) +
+        ggplot2::theme(axis.title = ggplot2::element_blank(),
+                       axis.text = ggplot2::element_text(size = 5))
 
     # ----------------------------------------------------------------
     # Save PNGs
@@ -247,6 +308,11 @@ luh2_plot_results <- function(output_dir, cty_shp, save_png = TRUE) {
         ggplot2::ggsave(
             plot     = p_dominant,
             filename = file.path(output_dir, paste0(cty_name, "-dominant.png")),
+            width    = 12, height = 6, bg = "white"
+        )
+        ggplot2::ggsave(
+            plot     = p_rgb,
+            filename = file.path(output_dir, paste0(cty_name, "-dominantRGB.png")),
             width    = 12, height = 6, bg = "white"
         )
         ggplot2::ggsave(

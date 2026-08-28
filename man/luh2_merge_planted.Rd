@@ -7,10 +7,10 @@
 luh2_merge_planted(luarea, cellarea, planted_tif, fstnf, cty_shp)
 }
 \arguments{
-\item{luarea}{A `SpatRaster` of land use areas (km²) returned inside the
+\item{luarea}{A `SpatRaster` of land use areas (km^2) returned inside the
 list from [luh2_extract_year()].}
 
-\item{cellarea}{A single-layer `SpatRaster` of cell areas in km² (also from
+\item{cellarea}{A single-layer `SpatRaster` of cell areas in km^2 (also from
 [luh2_extract_year()]).}
 
 \item{planted_tif}{Path to the planted forest GeoTIFF (e.g. `sdpt_global.tif`).}

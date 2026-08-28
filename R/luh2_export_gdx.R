@@ -105,6 +105,21 @@ luh2_export_gdx <- function(df, landx0, output_gdx) {
                    records = df[, c("pid", "w_plant")],
                    description = "planted forest proximity weight per pixel")
 
+    # Protected area coverage per pixel (000 ha)
+    m$addParameter("pa_area", pid_set,
+                   records = df[, c("pid", "pa_area")],
+                   description = "WDPA protected area coverage per pixel (000 ha)")
+
+    # Protected area coverage aggregated to IMPACT country level (000 ha)
+    pa_cty_df <- df |>
+        dplyr::group_by(cty) |>
+        dplyr::summarise(pa_area = sum(pa_area, na.rm = TRUE)) |>
+        dplyr::ungroup()
+
+    m$addParameter("pa_area_cty", cty_set,
+                   records = pa_cty_df,
+                   description = "WDPA protected area coverage by IMPACT country (000 ha)")
+
     # suit: suitability index per pixel per pool
     suit_df <- df %>%
         dplyr::select(pid,

@@ -40,7 +40,7 @@ luh2_write_tifs <- function(gdx_path, output_dir) {
                 dplyr::filter(fland == pool, yrs == yr) |>
                 dplyr::select(x, y, value)
 
-            # Build raster directly from xyz coordinates — avoids point snapping
+            # Build raster directly from xyz coordinates - avoids point snapping
             # issues that cause NA holes when rasterizing from SpatVector points
             r <- terra::rast(sub, type = "xyz", crs = "OGC:CRS84")
 

@@ -15,22 +15,25 @@
 #'   returned by [luh2_pool_trend()].
 #' @param other_trend A single-layer `SpatRaster` of other land slope
 #'   returned by [luh2_pool_trend()].
-#' @param cellarea A single-layer `SpatRaster` of cell areas in km².
+#' @param cellarea A single-layer `SpatRaster` of cell areas in km^2.
 #' @param icwtr A single-layer `SpatRaster` of ice/water fraction.
 #' @param cty_shp Path to the IMPACT regions shapefile. Must contain a `NEW_REGION`
 #'   field used as the country identifier.
 #' @param landx0 A data frame of IMPACT land use results with columns
 #'   `cty`, `fland`, `yrs`, `value`.
 #'
+#' @param pa_tif Path to the WDPA protected area raster (km^2 per pixel)
+#'   produced by [wdpa_process()]. If `NULL`, PA area is not included.
+#'
 #' @return A data frame with one row per pixel containing areas, shares,
-#'   weights, and country assignments.
+#'   weights, country assignments, and protected area coverage.
 #' @author Abhijeet Mishra, Claude Code
 #' @importFrom dplyr summarise left_join mutate select group_by
 #' @importFrom tidyr pivot_wider
 #' @importFrom magrittr %>%
 #' @export
 luh2_build_pixels <- function(luh, shares, crop_trend, natfor_trend, other_trend,
-                              cellarea, icwtr, cty_shp, landx0) {
+                              cellarea, icwtr, cty_shp, landx0, pa_tif = NULL) {
     cty <- terra::vect(cty_shp)
     names(cty)[names(cty) %in% "NEW_REGION"] <- "cty"
 
@@ -69,6 +72,19 @@ luh2_build_pixels <- function(luh, shares, crop_trend, natfor_trend, other_trend
     df[, area_cols] <- df[, pool_cols] * df$carea_kha
 
     df$avail_kha <- pmax(df$carea_kha * df$land_frac - df$urban_area, 0)
+
+    # Protected area coverage per pixel - converted to 000 ha to match other areas
+    # Capped at 90% of available land per pixel to account for WDPA boundary
+    # mismatches with LUH2 grid (some pixels show >100% PA coverage due to
+    # polygon edge effects)
+    if (!is.null(pa_tif)) {
+        pa_rast        <- terra::rast(pa_tif)
+        df$pa_area     <- terra::extract(pa_rast, pts)[, 2] * 100 / 1000 # original tif is in km2 so we make here conversion to 000ha from km2
+        df$pa_area[is.na(df$pa_area)] <- 0
+        df$pa_area     <- pmin(df$pa_area, 0.9 * df$avail_kha)
+    } else {
+        df$pa_area <- 0
+    }
 
     ##########################
 

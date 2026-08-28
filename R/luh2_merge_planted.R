@@ -4,9 +4,9 @@
 #' `other`, then from `natfor`, and caps any residual planted share at the
 #' remaining space after all LUH2 categories. Returns adjusted share rasters.
 #'
-#' @param luarea A `SpatRaster` of land use areas (km²) returned inside the
+#' @param luarea A `SpatRaster` of land use areas (km^2) returned inside the
 #'   list from [luh2_extract_year()].
-#' @param cellarea A single-layer `SpatRaster` of cell areas in km² (also from
+#' @param cellarea A single-layer `SpatRaster` of cell areas in km^2 (also from
 #'   [luh2_extract_year()]).
 #' @param planted_tif Path to the planted forest GeoTIFF (e.g. `sdpt_global.tif`).
 #' @param fstnf Flag if a pixel is forested or not.

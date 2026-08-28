@@ -13,7 +13,8 @@ luh2gdx(
   output_gdx,
   year = 2015,
   year_start = 1990,
-  year_end = 2015
+  year_end = 2015,
+  pa_tif = NULL
 )
 }
 \arguments{
@@ -34,6 +35,9 @@ luh2gdx(
 \item{year_start}{Integer. Start year for trend estimation (e.g. 1990).}
 
 \item{year_end}{Integer. End year for trend estimation (e.g. 2015).}
+
+\item{pa_tif}{Path to the WDPA protected area raster (km^2 per pixel)
+produced by [wdpa_process()]. If `NULL`, PA area is set to zero.}
 }
 \value{
 Invisibly returns the path to the written GDX file.
