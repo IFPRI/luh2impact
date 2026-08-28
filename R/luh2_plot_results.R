@@ -102,8 +102,10 @@ luh2_plot_results <- function(output_dir, cty_shp, save_png = TRUE) {
             ylim = c(ext_run[3] - 1, ext_run[4] + 1)
         ) +
         ggplot2::facet_grid(year ~ pool) +
-        ggplot2::theme_minimal() +
-        ggplot2::labs(title = "Land use share")
+        ggplot2::theme_minimal(base_size = 15) +
+        ggplot2::labs(title = "Land use share") +
+        ggplot2::theme(axis.title = element_blank(),
+                       axis.text = element_text(size = 5))
 
     # ----------------------------------------------------------------
     # Plot 3: Area (kha) faceted by pool, years 2021 and 2050
@@ -138,7 +140,7 @@ luh2_plot_results <- function(output_dir, cty_shp, save_png = TRUE) {
             ylim = c(ext_run[3] - 1, ext_run[4] + 1)
         ) +
         ggplot2::facet_grid(year ~ pool) +
-        ggplot2::theme_minimal() +
+        ggplot2::theme_minimal(base_size = 15) +
         ggplot2::labs(title = "Land use area (kha)") +
         ggplot2::scale_alpha_binned(
             name   = "area (kha)",
@@ -148,7 +150,9 @@ luh2_plot_results <- function(output_dir, cty_shp, save_png = TRUE) {
         ) +
     ggplot2::guides(
         alpha = ggplot2::guide_bins(override.aes = list(fill = "black"))
-    )
+    ) +
+        ggplot2::theme(axis.title = element_blank(),
+                       axis.text = element_text(size = 5))
 
     # ----------------------------------------------------------------
     # Plot 3a: Area (kha) faceted by pool, years 2050 vs 2021
@@ -186,9 +190,15 @@ luh2_plot_results <- function(output_dir, cty_shp, save_png = TRUE) {
             xlim = c(ext_run[1] - 1, ext_run[2] + 1),
             ylim = c(ext_run[3] - 1, ext_run[4] + 1)
         ) +
-        ggplot2::facet_wrap(. ~ pool) +
-        ggplot2::theme_minimal() +
-        ggplot2::labs(title = "Land use area change 2021-2050 (Kha)")
+        ggplot2::facet_wrap(. ~ pool, nrow = 1) +
+        ggplot2::theme_minimal(base_size = 15) +
+        ggplot2::labs(title = "Land use area change 2021-2050 (Kha)") +
+        ggplot2::theme(axis.title = element_blank(),
+                       legend.position = "bottom",
+                       legend.key.width = unit(1, "cm"),
+                       legend.key.height = unit(0.4, "cm")) +
+        ggplot2::theme(axis.title = element_blank(),
+                       axis.text = element_text(size = 5))
 
     # ----------------------------------------------------------------
     # Plot 4: Dominant land use per pixel
@@ -219,8 +229,11 @@ luh2_plot_results <- function(output_dir, cty_shp, save_png = TRUE) {
             ylim = c(ext_run[3] - 1, ext_run[4] + 1)
         ) +
         ggplot2::facet_wrap(year ~ .) +
-        ggplot2::theme_minimal() +
-        ggplot2::labs(title = "Dominant land use share")
+        ggplot2::theme_minimal(base_size = 15) +
+        ggplot2::labs(title = "Dominant land use share") +
+        ggplot2::theme(axis.title = element_blank()) +
+        ggplot2::theme(axis.title = element_blank(),
+                       axis.text = element_text(size = 5))
 
     # ----------------------------------------------------------------
     # Save PNGs
@@ -234,7 +247,7 @@ luh2_plot_results <- function(output_dir, cty_shp, save_png = TRUE) {
         ggplot2::ggsave(
             plot     = p_dominant,
             filename = file.path(output_dir, paste0(cty_name, "-dominant.png")),
-            width    = 16, height = 8, bg = "white"
+            width    = 12, height = 6, bg = "white"
         )
         ggplot2::ggsave(
             plot     = p_area,
@@ -244,7 +257,7 @@ luh2_plot_results <- function(output_dir, cty_shp, save_png = TRUE) {
         ggplot2::ggsave(
             plot     = p_area_change,
             filename = file.path(output_dir, paste0(cty_name, "-areachange.png")),
-            width    = 12, height = 8, bg = "white"
+            width    = 14, height = 5, bg = "white"
         )
         message("Plots saved to ", output_dir)
     }
